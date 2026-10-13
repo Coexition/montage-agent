@@ -1,0 +1,47 @@
+{
+  "name": "creator-default",
+  "theme": {
+    "fonts": {
+      "display": "\"Inter Display\", Inter, \"Helvetica Neue\", Arial, sans-serif",
+      "body": "Inter, \"Helvetica Neue\", Arial, sans-serif",
+      "mono": "\"DejaVu Sans Mono\", Menlo, monospace"
+    },
+    "colors": {
+      "bg": "#0b0b0f",
+      "text": "#ffffff",
+      "accent": "#2f7bff",
+      "accent2": "#ffd400",
+      "card": "#f4f2ee",
+      "cardText": "#0b0b0f",
+      "danger": "#ff3b30",
+      "success": "#22c55e"
+    },
+    "radius": 36,
+    "shadow": { "blur": 50, "y": 18, "color": "rgba(0,0,0,0.35)" },
+    "captions": {
+      "size": 76,
+      "weight": 900,
+      "y": "74%",
+      "maxWords": 3,
+      "maxChars": 18,
+      "uppercase": false,
+      "color": "#ffffff",
+      "highlight": "#ffd400",
+      "strokeWidth": 14,
+      "strokeColor": "rgba(0,0,0,0.92)",
+      "pop": true
+    }
+  },
+  "rhythm": {
+    "speed": 1.1,
+    "autocutGap": 0.25,
+    "punchOnCuts": 1.1,
+    "maxSecondsWithoutVisual": 2.5
+  },
+  "layouts": {
+    "full": { "camera": { "box": [0, 0, 1080, 1920] } },
+    "splitTop": { "camera": { "box": [0, 960, 1080, 960], "focus": [0.5, 0.35] }, "media": [0, 0, 1080, 960] },
+    "splitBottom": { "camera": { "box": [0, 0, 1080, 960], "focus": [0.5, 0.35] }, "media": [0, 960, 1080, 960] }
+  },
+  "sfx": { "pop": "assets/sfx/pop.mp3", "whoosh": "assets/sfx/whoosh.mp3" }
+}

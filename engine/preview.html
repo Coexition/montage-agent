@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Preview live</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #0a0a0b; color: #ececef; font: 14px Inter, system-ui, sans-serif; }
+  .wrap { display: grid; grid-template-columns: 1fr 340px; height: 100%; }
+  .stage { display: grid; place-items: center; padding: 20px; min-height: 0; }
+  canvas { max-height: calc(100vh - 120px); max-width: 100%; border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,.6); background: #000; }
+  .bar { display: flex; gap: 10px; align-items: center; padding: 0 20px 16px; }
+  input[type=range] { flex: 1; }
+  button { background: #1a1a1e; color: #fff; border: 1px solid #2e2e33; border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  .t { font: 15px ui-monospace, Menlo, monospace; min-width: 150px; }
+  aside { border-left: 1px solid #232327; overflow-y: auto; padding: 16px; }
+  aside h3 { margin: 0 0 10px; font-size: 13px; color: #8b8b93; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+  .el { display: flex; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .el:hover { background: #161619; }
+  .el.on { background: rgba(59,130,246,.14); }
+  .el b { font-weight: 500; min-width: 74px; color: #9cc2ff; }
+  .el span { color: #8b8b93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .err { color: #ff8a80; white-space: pre-wrap; font: 12px ui-monospace, monospace; }
+  .muted { color: #8b8b93; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;flex-direction:column;min-height:0">
+    <div class="stage"><canvas id="c"></canvas></div>
+    <div class="bar">
+      <button id="play">▶︎</button>
+      <span class="t" id="time">0:00.00</span>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <span class="muted" id="fps"></span>
+    </div>
+  </div>
+  <aside>
+    <h3>Preview live — spec.js</h3>
+    <p class="muted">Rendu en temps réel dans Chrome, sans encodage. La page se recharge à chaque sauvegarde de <code>source/spec.js</code>.</p>
+    <div id="err" class="err"></div>
+    <h3 style="margin-top:18px">Éléments</h3>
+    <div id="els"></div>
+  </aside>
+</div>
+<audio id="audio" preload="auto"></audio>
+<script type="module">
+import { createEngine } from '/engine/runtime.js';
+const canvas = document.getElementById('c');
+const audio = document.getElementById('audio');
+const scrub = document.getElementById('scrub');
+let eng, t = 0, playing = false, busy = false, last = performance.now(), frames = 0, fpsT = performance.now();
+
+const fmt = (x) => `${Math.floor(x / 60)}:${(x % 60).toFixed(2).padStart(5, '0')}`;
+
+async function init() {
+  const keep = t;
+  try {
+    eng = await createEngine({ canvas });
+    document.getElementById('err').textContent = '';
+  } catch (e) {
+    document.getElementById('err').textContent = String(e.stack || e);
+    return;
+  }
+  document.getElementById('els').innerHTML = eng.elements.map((e) =>
+    `<div class="el" data-at="${e._at}"><b>${e.type}</b><span>${fmt(e._at)} → ${fmt(e._end)} ${(e.text || e.label || e.title || '').toString().replace(/\*\*/g, '')}</span></div>`).join('');
+  t = Math.min(keep, eng.duration);
+  await eng.renderTime(t);
+  // audio du montage (cuts + vitesse + sfx) construit par le serveur studio
+  try {
+    const r = await fetch('/api/build-audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(eng.info()) });
+    if (r.ok) { audio.src = (await r.json()).url; audio.currentTime = t; }
+  } catch {}
+}
+document.getElementById('els').onclick = (e) => { const el = e.target.closest('.el'); if (el) seek(Number(el.dataset.at) + 0.05); };
+
+function seek(x) { t = Math.max(0, Math.min(eng.duration, x)); audio.currentTime = t; draw(); }
+async function draw() {
+  if (busy) return; busy = true;
+  try { await eng.renderTime(t); } finally { busy = false; }
+  frames++;
+  document.getElementById('time').textContent = `${fmt(t)} / ${fmt(eng.duration)}`;
+  scrub.value = (t / eng.duration) * 1000;
+  document.querySelectorAll('.el').forEach((el) => {
+    const e = eng.elements.find((x) => Math.abs(x._at - Number(el.dataset.at)) < 1e-6);
+    el.classList.toggle('on', !!e && t >= e._at && t < e._end);
+  });
+}
+function loop(now) {
+  if (playing && eng) {
+    if (audio.src && !audio.paused) t = audio.currentTime; else t += (now - last) / 1000;
+    if (t >= eng.duration) { t = eng.duration; toggle(); }
+    draw();
+  }
+  if (now - fpsT > 1000) { document.getElementById('fps').textContent = playing ? `${frames} fps` : ''; frames = 0; fpsT = now; }
+  last = now;
+  requestAnimationFrame(loop);
+}
+function toggle() {
+  playing = !playing;
+  document.getElementById('play').textContent = playing ? '❚❚' : '▶︎';
+  if (playing) { if (t >= eng.duration - 0.05) t = 0; audio.currentTime = t; audio.play().catch(() => {}); } else audio.pause();
+}
+document.getElementById('play').onclick = toggle;
+scrub.oninput = () => seek((scrub.value / 1000) * eng.duration);
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ') { e.preventDefault(); toggle(); }
+  if (e.key === 'ArrowLeft') seek(t - (e.shiftKey ? 1 : 1 / eng.fps));
+  if (e.key === 'ArrowRight') seek(t + (e.shiftKey ? 1 : 1 / eng.fps));
+});
+try { new EventSource('/api/events').addEventListener('spec', () => init()); } catch {}
+await init();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

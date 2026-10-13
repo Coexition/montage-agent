@@ -1,0 +1,13 @@
+node_modules/
+projects/*/frames/
+projects/*/cache/
+projects/*/output/
+projects/*/screenshots/
+projects/*/footage/
+!projects/demo/
+projects/demo/frames/
+projects/demo/cache/
+projects/demo/output/
+projects/demo/screenshots/
+projects/demo/footage/
+.DS_Store

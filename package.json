@@ -1,0 +1,23 @@
+{
+  "name": "montage-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Moteur de montage vidéo piloté par IA : spec.js → Chrome (canvas) → MP4, avec studio de review.",
+  "scripts": {
+    "new": "node scripts/new-project.mjs",
+    "prepare-footage": "node scripts/prepare.mjs",
+    "transcribe": "node scripts/transcribe.mjs",
+    "autocut": "node scripts/autocut.mjs",
+    "render": "node engine/render.mjs",
+    "still": "node engine/render.mjs --still",
+    "studio": "node studio/server.mjs",
+    "review": "node scripts/review.mjs",
+    "demo": "node scripts/make-demo.mjs",
+    "test": "node scripts/selftest.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.56.1"
+  },
+  "engines": { "node": ">=20" }
+}
