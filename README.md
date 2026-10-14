@@ -1,6 +1,6 @@
 # montage-agent
 
-Un monteur vidéo IA piloté par Claude Code, sur le modèle du workflow présenté dans la vidéo *« le montage vidéo avec l'IA »* (moteur maison vs Remotion vs HyperFrames) :
+Un monteur vidéo IA piloté par Claude Code :
 
 - **un moteur de rendu ultra léger** : `spec.js` (des données) → Chrome headless dessine chaque frame sur un `<canvas>` → **WebCodecs H.264 encode directement dans Chrome** → ffmpeg muxe en `-c copy`. Pas de React, pas de bundler, pas de 600 Mo de dépendances (1 seule : `playwright-core`) ;
 - **un studio de review** dans le navigateur : lecteur, transcription mot à mot, commentaires horodatés, cuts, dessin sur la frame, « Ideas », et **Copy prompt** pour renvoyer tous les retours à l'agent ;
