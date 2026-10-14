@@ -25,12 +25,14 @@
       <button data-act="render-draft">⚡ Re-render (draft ½)</button>
       <button data-act="render">🎬 Re-render (final)</button>
       <button data-act="download">⬇︎ Télécharger le MP4</button>
-      <button data-act="show-prompt">📋 Voir le prompt</button>
+      <button data-act="copy-prompt">📋 Copier le prompt (secours)</button>
+      <button data-act="show-prompt">👁 Voir le prompt</button>
     </div>
   </div>
-  <button class="copy-btn" id="copyPrompt" title="Copie tous les feedbacks ouverts dans un prompt pour l'agent">
-    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-width="2" d="M8 8h11v12H8zM5 16H4V4h12v1"/></svg>
-    Copy prompt <span class="count" id="openCount">0</span>
+  <span class="agent-chip" id="agentChip" title="État de Claude"><i></i><span>…</span></span>
+  <button class="send-btn" id="sendBtn" title="Envoie tous les retours ouverts à Claude, qui fait la version suivante (⌘↵)">
+    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 12l16-8-6 16-3-7z"/></svg>
+    Envoyer à Claude <span class="count" id="openCount">0</span>
   </button>
 </header>
 

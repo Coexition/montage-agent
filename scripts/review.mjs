@@ -6,8 +6,12 @@
 //   node scripts/review.mjs resolve <projet> <id> "réponse"  marque résolu + réponse affichée dans le studio (✦)
 //   node scripts/review.mjs reopen  <projet> <id>
 //   node scripts/review.mjs add     <projet> --at 12.3 "texte"   (ajout manuel)
+//   node scripts/review.mjs watch   <projet>                 écoute le bouton "Envoyer à Claude" du studio :
+//                                                           1 ligne "SEND <id> …" par envoi (à lancer avec Monitor)
+//   node scripts/review.mjs status  <projet> <working|done|idle> ["message"] [--request <id>]
+//                                                           état affiché dans le studio pendant le travail
 import { resolveProject, readFeedback, listVersions, parseArgs } from '../engine/lib/project.mjs';
-import { buildPrompt, updateItem, addItem } from '../engine/lib/feedback.mjs';
+import { buildPrompt, updateItem, addItem, readRequests, updateRequest, writeAgent } from '../engine/lib/feedback.mjs';
 import { fmtTime } from '../engine/timeline.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -39,6 +43,33 @@ if (cmd === 'prompt') {
 } else if (cmd === 'add') {
   const it = addItem(dir, { kind: args.kind || 'comment', at: Number(args.at || 0), end: args.end != null ? Number(args.end) : null, text: rest.join(' '), version: latest, author: 'agent' });
   console.log(`+ ${it.id}`);
+} else if (cmd === 'watch') {
+  // heartbeat (le studio affiche "Claude connecté") + une ligne par nouvel envoi, y compris ceux faits hors ligne
+  const beat = () => writeAgent(dir, { beat: new Date().toISOString(), pid: process.pid });
+  writeAgent(dir, { state: 'idle', message: '' });
+  beat();
+  setInterval(beat, 10000);
+  const seen = new Set();
+  const check = () => {
+    for (const r of readRequests(dir).requests) {
+      if (r.status !== 'pending' || seen.has(r.id)) continue;
+      seen.add(r.id);
+      updateRequest(dir, r.id, { status: 'received' });
+      console.log(`SEND ${r.id} — ${r.items.length} retour(s) sur v${r.version ?? '?'} → node scripts/review.mjs prompt ${proj}`);
+    }
+  };
+  check();
+  setInterval(check, 1000);
+  const bye = () => { writeAgent(dir, { beat: null, state: 'idle' }); process.exit(0); };
+  process.on('SIGINT', bye);
+  process.on('SIGTERM', bye);
+} else if (cmd === 'status') {
+  const [state, ...msg] = rest;
+  writeAgent(dir, { state, message: msg.join(' ') });
+  const reqs = readRequests(dir).requests;
+  const rid = args.request || reqs.filter((r) => r.status !== 'done').pop()?.id;
+  if (rid && (state === 'working' || state === 'done')) updateRequest(dir, rid, { status: state });
+  console.log(`agent : ${state}${msg.length ? ' — ' + msg.join(' ') : ''}`);
 } else {
   console.error(`commande inconnue : ${cmd}`);
   process.exit(1);

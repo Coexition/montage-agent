@@ -201,7 +201,9 @@ export async function render(projectArg, opts = {}) {
       const all = path.join(work, 'video.h264');
       fs.writeFileSync(all, '');
       for (let i = 0; i < ranges.length; i++) fs.appendFileSync(all, fs.readFileSync(path.join(work, `seg-${i}.h264`)));
-      await ffmpeg(['-f', 'h264', '-r', String(info.fps), '-i', all, '-i', audioFile, '-map', '0:v', '-map', '1:a', '-c', 'copy', '-movflags', '+faststart', '-shortest', outFile]);
+      // le flux H.264 brut n'a pas de timestamps : ffmpeg ≥ 8 perd alors l'audio avec -shortest → on les génère (pas de B-frames)
+      const setts = `setts=pts=N*(1/${info.fps})/TB:dts=N*(1/${info.fps})/TB`;
+      await ffmpeg(['-f', 'h264', '-r', String(info.fps), '-i', all, '-i', audioFile, '-map', '0:v', '-map', '1:a', '-c', 'copy', '-bsf:v', setts, '-movflags', '+faststart', '-shortest', outFile]);
     } else {
       ffprocs.forEach((f) => f.p.stdin.end());
       await Promise.all(ffprocs.map((f) => f.done));

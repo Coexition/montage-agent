@@ -496,7 +496,7 @@ function renderList() {
   $('#cRes').textContent = all.length - open.length;
   $('#cAll').textContent = all.length;
   $('#openCount').textContent = open.length;
-  $('#copyPrompt').classList.toggle('zero', !open.length);
+  $('#sendBtn').classList.toggle('zero', !open.length);
   const items = (S.filter === 'open' ? open : S.filter === 'resolved' ? all.filter((x) => x.status === 'resolved') : all)
     .slice()
     .sort((a, b) => (itemTime(a) ?? 0) - (itemTime(b) ?? 0));
@@ -566,18 +566,49 @@ async function copyPrompt() {
     const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
   }
-  const b = $('#copyPrompt');
-  b.classList.add('done');
-  setTimeout(() => b.classList.remove('done'), 1500);
   toast('Prompt copié — colle-le dans Claude Code');
 }
-$('#copyPrompt').onclick = copyPrompt;
+
+// ---------------------------------------------------------------- envoi direct à Claude
+async function sendToClaude() {
+  // un commentaire tapé (ou un dessin) pas encore ajouté part avec l'envoi
+  if ($('#fbText').value.trim() || S.shapes.length) await addFeedback();
+  const open = S.feedback.filter((x) => x.status !== 'resolved');
+  if (!open.length) return toast('Aucun retour à envoyer — ajoute un commentaire (C)');
+  try {
+    await api('/api/send', { method: 'POST', body: { version: S.version?.v ?? null } });
+  } catch (err) { return toast(err.message); }
+  const b = $('#sendBtn');
+  b.classList.add('done');
+  setTimeout(() => b.classList.remove('done'), 1500);
+  const a = await pollAgent();
+  toast(a?.online
+    ? `Envoyé ✦ Claude prépare la version suivante (${open.length} retour${open.length > 1 ? 's' : ''})`
+    : 'Envoyé — Claude n\'est pas connecté : il le traitera dès que tu lui dis « écoute le studio »', null, 5000);
+}
+$('#sendBtn').onclick = sendToClaude;
+
+async function pollAgent() {
+  let a;
+  try { a = await api('/api/agent'); } catch { return null; }
+  const chip = $('#agentChip');
+  const working = a.online && (a.state === 'working' || a.pending > 0 || a.last?.status === 'received');
+  chip.className = `agent-chip ${a.online ? 'online' : ''} ${working ? 'working' : ''}`;
+  chip.querySelector('span').textContent = !a.online
+    ? (a.pending ? `Claude hors ligne · ${a.pending} envoi en attente` : 'Claude hors ligne')
+    : working ? (a.message || 'Claude travaille…') : 'Claude connecté';
+  chip.title = a.online ? 'Claude écoute ce studio : « Envoyer à Claude » déclenche la version suivante' : 'Dis à Claude « écoute le studio » dans Claude Code';
+  return a;
+}
+pollAgent();
+setInterval(pollAgent, 3000);
 $('#moreBtn').onclick = (e) => { e.stopPropagation(); $('#moreMenu').hidden = !$('#moreMenu').hidden; };
 document.addEventListener('click', () => ($('#moreMenu').hidden = true));
 $('#moreMenu').addEventListener('click', async (e) => {
   const act = e.target.closest('button')?.dataset.act;
   if (act === 'preview') window.open('/preview', '_blank');
   if (act === 'download' && S.version) { const a = document.createElement('a'); a.href = `/project/${S.version.file}`; a.download = `${S.project.name}-v${S.version.v}.mp4`; a.click(); }
+  if (act === 'copy-prompt') copyPrompt();
   if (act === 'show-prompt') { $('#promptPre').textContent = await api(`/api/prompt${S.version ? `?v=${S.version.v}` : ''}`); $('#promptDlg').showModal(); }
   if (act === 'render' || act === 'render-draft') {
     try { await api('/api/render', { method: 'POST', body: { draft: act === 'render-draft' } }); toast('Rendu lancé…', null, 0); }
@@ -601,7 +632,11 @@ const es = new EventSource('/api/events');
 es.addEventListener('feedback', () => loadFeedback());
 es.addEventListener('render', async (e) => {
   const { version } = JSON.parse(e.data);
-  toast(`Nouveau rendu v${version} disponible`, { label: 'Recharger', run: async () => { S.version = null; await loadProject(false); } }, 0);
+  const busy = S.drawing || /^(TEXTAREA|INPUT)$/.test(document.activeElement?.tagName);
+  if (busy) return toast(`Nouveau rendu v${version} disponible`, { label: 'Charger', run: async () => { S.version = null; await loadProject(false); } }, 0);
+  S.version = null;
+  await loadProject(false);
+  toast(`✦ v${version} chargée`, null, 4000);
 });
 es.addEventListener('render-progress', (e) => toast(`Rendu… ${JSON.parse(e.data).pct}%`, null, 0));
 es.addEventListener('render-end', (e) => { if (JSON.parse(e.data).code) toast('Le rendu a échoué (voir le terminal)'); });
@@ -611,6 +646,7 @@ document.addEventListener('keydown', (e) => {
   const typing = /^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement?.tagName);
   if (typing) return;
   if (e.metaKey || e.ctrlKey) {
+    if (e.key === 'Enter') { sendToClaude(); e.preventDefault(); return; }
     if (e.key === 'z' && S.drawing) { S.shapes.pop(); paintShapes(); e.preventDefault(); }
     return;
   }

@@ -85,11 +85,17 @@ node studio/server.mjs <nom> --open      # lance en arrière-plan (run_in_backgr
 
 - Si l'utilisateur dit **"studio"** dès le départ : fais d'abord un rendu rapide (`--draft`, cuts + sous-titres + caméra) et lance le studio **avant la V1** pour qu'il annote ce qu'il veut (animations à tel endroit, etc.). Sinon : fais la V1 complète puis lance le studio.
 - Le studio se met à jour tout seul à chaque nouveau rendu (bouton "Recharger"). Donne l'URL à l'utilisateur.
-- Il y commente au temps précis, sélectionne du texte du transcript (citation), fait des **Cut**, dessine sur la frame (flèches, rectangles, points → image jointe), demande des **Ideas**, puis clique **Copy prompt** et te colle le prompt.
+- Il y commente au temps précis, sélectionne du texte du transcript (citation), fait des **Cut**, dessine sur la frame (flèches, rectangles, points → image jointe), demande des **Ideas**, puis clique **Envoyer à Claude** (⌘↵).
+- **L'utilisateur ne doit jamais avoir à te coller de prompt.** Dès que le studio est lancé, écoute-le avec l'outil **Monitor** (timeout max, ré-arme à chaque expiration tant que la session dure) :
+  ```bash
+  node scripts/review.mjs watch <nom> 2>&1 | grep --line-buffered -E "SEND|Error|✗"
+  ```
+  Le studio affiche « ● Claude connecté » tant que ce watch tourne. Chaque clic produit une ligne `SEND <rq_id> …` → applique immédiatement le cycle du §5, sans attendre de message dans le chat. Si l'utilisateur dit « écoute le studio », relance ce watch (les envois faits hors ligne sont traités au démarrage).
+- « Copy prompt » reste dans le menu ⋯ du studio, en secours.
 
 ## 5. Appliquer le feedback
 
-Tu reçois le prompt du studio (ou lis-le toi-même : `node scripts/review.mjs prompt <nom>`). Pour chaque retour :
+À chaque `SEND` : `node scripts/review.mjs status <nom> working "Claude prépare la vN+1…"` (affiché dans le studio), lis les retours avec `node scripts/review.mjs prompt <nom>`, puis pour chaque retour :
 1. Regarde les pièces jointes (images annotées) avec Read.
 2. Modifie la spec. **Cut** → retire les temps *source* indiqués de `source/cuts.json` (ou ajoute un `cuts` explicite). **Ideas** → propose 3 idées, implémente la meilleure.
 3. Re-rends (nouvelle version vN+1), vérifie la planche contact.
@@ -98,7 +104,7 @@ Tu reçois le prompt du studio (ou lis-le toi-même : `node scripts/review.mjs p
    node scripts/review.mjs resolve <nom> <id> "Le sablier est remplacé par une fenêtre de rendu qui développe les frames une par une, avec barre de progression et chrono jusqu'à 1:46."
    ```
    Une phrase concrète de ce que tu as fait, pas "fait".
-5. Dis à l'utilisateur de recharger le studio (vN+1).
+5. `node scripts/review.mjs status <nom> done "vN+1 prête"` — le studio charge la nouvelle version tout seul. Résume en 2-3 lignes dans le chat ce que tu as changé.
 
 ## 6. Customisation et apprentissage (le plus important)
 

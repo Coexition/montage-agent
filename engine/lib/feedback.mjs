@@ -98,3 +98,52 @@ export function buildPrompt(dir, { version, includeResolved = false } = {}) {
   void rel;
   return lines.join('\n');
 }
+
+// ---- Envoi direct à l'agent (bouton "Envoyer à Claude") ----
+// reviews/requests.json : file des envois du studio. cache/agent.json : présence + état de l'agent (heartbeat).
+const requestsFile = (dir) => path.join(dir, 'reviews/requests.json');
+const agentFile = (dir) => path.join(dir, 'cache/agent.json');
+
+export function readRequests(dir) {
+  try { return JSON.parse(fs.readFileSync(requestsFile(dir), 'utf8')); } catch { return { requests: [] }; }
+}
+
+function writeRequests(dir, data) {
+  fs.mkdirSync(path.join(dir, 'reviews'), { recursive: true });
+  fs.writeFileSync(requestsFile(dir), JSON.stringify(data, null, 2));
+}
+
+/** Crée une demande avec tous les retours ouverts. status : pending → working → done */
+export function sendRequest(dir, { version } = {}) {
+  const items = readFeedback(dir).items.filter((x) => x.status !== 'resolved').map((x) => x.id);
+  if (!items.length) throw new Error('Aucun retour ouvert à envoyer');
+  const data = readRequests(dir);
+  const req = { id: 'rq_' + crypto.randomBytes(3).toString('hex'), version: version ?? null, items, status: 'pending', createdAt: new Date().toISOString() };
+  data.requests.push(req);
+  writeRequests(dir, data);
+  return req;
+}
+
+export function updateRequest(dir, id, patch) {
+  const data = readRequests(dir);
+  const req = data.requests.find((r) => r.id === id);
+  if (!req) throw new Error(`Demande ${id} introuvable`);
+  Object.assign(req, patch, { updatedAt: new Date().toISOString() });
+  writeRequests(dir, data);
+  return req;
+}
+
+export function readAgent(dir) {
+  let a = {};
+  try { a = JSON.parse(fs.readFileSync(agentFile(dir), 'utf8')); } catch {}
+  const online = !!a.beat && Date.now() - Date.parse(a.beat) < 30000;
+  const reqs = readRequests(dir).requests;
+  return { online, state: a.state || 'idle', message: a.message || '', pending: reqs.filter((r) => r.status === 'pending').length, last: reqs[reqs.length - 1] || null };
+}
+
+export function writeAgent(dir, patch) {
+  let a = {};
+  try { a = JSON.parse(fs.readFileSync(agentFile(dir), 'utf8')); } catch {}
+  fs.mkdirSync(path.dirname(agentFile(dir)), { recursive: true });
+  fs.writeFileSync(agentFile(dir), JSON.stringify({ ...a, ...patch }, null, 2));
+}

@@ -35,10 +35,13 @@ fs.writeFileSync(path.join(dir, 'cache/demo-audio.txt'), `aevalsrc='${exprs}':s=
 console.log(`demo : ${words.length} mots, ${duration}s`);
 const wav = path.join(dir, 'cache/demo-audio.wav');
 await ffmpeg(['-filter_complex_script', path.join(dir, 'cache/demo-audio.txt'), '-ac', '2', wav]);
+// drawtext n'existe que si ffmpeg est compilé avec freetype (absent du ffmpeg Homebrew récent)
+const { out: filters } = await ffmpeg(['-filters']);
+const label = /\bdrawtext\b/.test(filters) ? ",drawtext=text='RUSH CAMERA %{pts\\:hms}':x=60:y=1700:fontsize=56:fontcolor=white:box=1:boxcolor=black@0.5" : '';
 await ffmpeg([
   '-f', 'lavfi', '-i', `testsrc2=s=1080x1920:r=30:d=${duration}`,
   '-i', wav,
-  '-vf', "hue=s=0.35,drawbox=x=340:y=560:w=400:h=520:color=0xf2d0b0@0.9:t=fill,drawtext=text='RUSH CAMERA %{pts\\:hms}':x=60:y=1700:fontsize=56:fontcolor=white:box=1:boxcolor=black@0.5",
+  '-vf', `hue=s=0.35,drawbox=x=340:y=560:w=400:h=520:color=0xf2d0b0@0.9:t=fill${label}`,
   '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest',
   path.join(dir, 'footage/rush.mp4'),
 ]);

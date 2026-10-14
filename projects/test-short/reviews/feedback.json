@@ -1,0 +1,88 @@
+{
+  "items": [
+    {
+      "id": "fb_b385a1",
+      "kind": "idea",
+      "version": 3,
+      "at": 1.405894,
+      "end": 2.405894,
+      "srcAt": 231.4266655915599,
+      "srcEnd": 232.52676403669724,
+      "quote": "Lucia. What's up, y'all? Gonna",
+      "text": "",
+      "attachments": [],
+      "status": "resolved",
+      "createdAt": "2026-10-14T15:04:44.716Z",
+      "author": "user",
+      "resolvedAt": "2026-10-14T15:04:59.919Z"
+    },
+    {
+      "id": "fb_36ef43",
+      "kind": "idea",
+      "version": 3,
+      "at": 28.707379,
+      "end": null,
+      "srcAt": 261.45794018348624,
+      "srcEnd": null,
+      "quote": "hilarious. Oop, what's up? Nice",
+      "text": "",
+      "attachments": [],
+      "status": "resolved",
+      "createdAt": "2026-10-14T15:04:48.499Z",
+      "author": "user",
+      "resolvedAt": "2026-10-14T15:05:01.172Z"
+    },
+    {
+      "id": "fb_4f86ef",
+      "kind": "idea",
+      "version": 3,
+      "at": 28.707379,
+      "end": null,
+      "srcAt": 261.45794018348624,
+      "srcEnd": null,
+      "quote": "hilarious. Oop, what's up? Nice",
+      "text": "",
+      "attachments": [],
+      "status": "resolved",
+      "createdAt": "2026-10-14T15:05:02.764Z",
+      "author": "user",
+      "resolvedAt": "2026-10-14T15:05:20.002Z"
+    },
+    {
+      "id": "fb_2b4430",
+      "kind": "idea",
+      "version": 3,
+      "at": 31.329836,
+      "end": null,
+      "srcAt": 264.34305390539055,
+      "srcEnd": null,
+      "quote": "Hey. Thanks. Pleasure.",
+      "text": "",
+      "attachments": [],
+      "status": "resolved",
+      "createdAt": "2026-10-14T15:05:11.921Z",
+      "author": "user",
+      "resolvedAt": "2026-10-14T15:05:20.278Z"
+    },
+    {
+      "id": "fb_7d504e",
+      "kind": "comment",
+      "version": 3,
+      "at": 32.761111,
+      "end": null,
+      "srcAt": 265.91761386138614,
+      "srcEnd": null,
+      "quote": "Pleasure. You two should get in on the",
+      "text": "c'est pas beau,, rend le plus design",
+      "attachments": [
+        "reviews/attachments/fb_408fa6.jpg"
+      ],
+      "status": "resolved",
+      "createdAt": "2026-10-14T15:15:05.214Z",
+      "author": "user",
+      "response": "La liste à cocher est remplacée par 5 cartes de personnages (pastille couleur avec l'initiale, prénom, rôle) qui arrivent une à une en ressort, chacune avec un check vert, puis un bandeau noir « ✓ BANDE VALIDÉE » qui s'écrase au-dessus avec un léger flash.",
+      "resolvedIn": 5,
+      "resolvedAt": "2026-10-14T15:16:07.572Z"
+    }
+  ]
+}

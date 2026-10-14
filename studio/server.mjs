@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Studio de review : lecteur vidéo + transcription + feedback (commentaires, cuts, dessins)
-// + "Copy prompt" pour renvoyer tous les retours à l'agent.
+// + "Envoyer à Claude" : les retours partent directement à l'agent qui écoute (scripts/review.mjs watch).
+// "Copy prompt" reste disponible dans le menu ⋯ en secours.
 //
 //   node studio/server.mjs projects/demo [--port 4400] [--open]
 //
@@ -11,7 +12,7 @@ import { spawn, exec } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createServer, listen, json, readJSON, sendFile } from '../engine/lib/server.mjs';
 import { resolveProject, readProject, listVersions, readFeedback, parseArgs, ENGINE_DIR, SKILL_DIR, ROOT } from '../engine/lib/project.mjs';
-import { addItem, updateItem, deleteItem, saveAttachment, buildPrompt } from '../engine/lib/feedback.mjs';
+import { addItem, updateItem, deleteItem, saveAttachment, buildPrompt, sendRequest, readAgent } from '../engine/lib/feedback.mjs';
 import { buildAudio } from '../engine/audio.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -72,6 +73,12 @@ export async function startStudio(projectArg, { port = 4400, open = false } = {}
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(buildPrompt(dir, { version: v ? Number(v) : undefined }));
     }],
+    // envoi direct à l'agent : crée une demande dans reviews/requests.json
+    ['POST', /^\/api\/send$/, async (req, res) => {
+      const body = await readJSON(req);
+      try { json(res, sendRequest(dir, { version: body.version })); } catch (e) { json(res, { error: e.message }, 400); }
+    }],
+    ['GET', /^\/api\/agent$/, (req, res) => json(res, readAgent(dir))],
     ['GET', /^\/api\/events$/, (req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
       res.write('event: hello\ndata: {}\n\n');
